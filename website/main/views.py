@@ -95,7 +95,7 @@ def week_custom(request):
 def post_default_day(request, day_id):
     if request.method == 'POST':
         def_day = get_object_or_404(DefaultDay, week_day=day_id, user=request.user)
-        tasks = list(def_day.tasks.values('title'))
+        tasks = list(def_day.tasks.values('id', 'title'))
         return JsonResponse({'tasks': tasks})
     return JsonResponse({'error': 'Invalid request'}, status=400)
 
@@ -136,6 +136,32 @@ def user_settings(request):
         form = UserSettingsForm(instance=request.user)
 
     return render(request, 'main/settings.html', {'form': form})
+
+
+@login_required
+def delete_def_task(request, task_id):
+    if request.method == 'POST':
+        task = get_object_or_404(DefaultTask, id=task_id, defaultday__user=request.user)
+        task.delete()
+        return JsonResponse({'message': 'Task deleted'}, status=200)
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+
+@login_required
+def edit_def_task(request, task_id):
+    if request.method == 'POST':
+        task = get_object_or_404(DefaultTask, id=task_id, defaultday__user=request.user)
+        try:
+            data = json.loads(request.body)
+            title = data.get('title', '').strip()
+            if title:
+                task.title = title
+                task.save()
+                return JsonResponse({'message': 'Task updated'}, status=200)
+            return JsonResponse({'error': 'Title cannot be empty'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'Invalid request'}, status=400)
 
 
 class CustomLoginView(LoginView):

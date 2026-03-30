@@ -136,19 +136,88 @@
     function renderTasks(tasks) {
         const list = document.getElementById('task-list');
         list.innerHTML = '';
+        const isEveryday = selectedDay === 'all';
+
         if (tasks && tasks.length > 0) {
             tasks.forEach(task => {
                 const div = document.createElement('div');
-                div.className = 'flex items-center gap-3 bg-white px-4 py-3 rounded-xl border border-gray-100';
+                div.className = 'flex items-center gap-3 bg-white px-4 py-3 rounded-xl border border-gray-100 group';
                 div.innerHTML = `
-                    <span class="w-2 h-2 rounded-full bg-brand-400"></span>
-                    <span class="text-sm text-gray-700">${task.title}</span>
+                    <span class="w-2 h-2 rounded-full bg-brand-400 shrink-0"></span>
+                    <span class="flex-1 text-sm text-gray-700 task-title">${task.title}</span>
+                    ${!isEveryday && task.id ? `
+                    <button onclick="editTask(${task.id}, this)" class="text-gray-300 hover:text-brand-600 transition opacity-0 group-hover:opacity-100" title="Edit">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                        </svg>
+                    </button>
+                    <button onclick="deleteTask(${task.id})" class="text-gray-300 hover:text-red-500 transition opacity-0 group-hover:opacity-100" title="Delete">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                    ` : ''}
                 `;
                 list.appendChild(div);
             });
         } else {
             list.innerHTML = '<p class="text-sm text-gray-400 py-4 text-center">No default tasks for this day yet.</p>';
         }
+    }
+
+    function deleteTask(taskId) {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `/customize/api/delete/${taskId}/`, true);
+        xhr.setRequestHeader('X-CSRFToken', '{{ csrf_token }}');
+        xhr.onload = () => {
+            if (xhr.status === 200) {
+                const btn = document.querySelector(`#days-group button[data-day="${selectedDay}"]`);
+                selectDay(selectedDay, btn);
+            }
+        };
+        xhr.send();
+    }
+
+    function editTask(taskId, btnEl) {
+        const row = btnEl.closest('.group');
+        const titleSpan = row.querySelector('.task-title');
+        const currentTitle = titleSpan.textContent.trim();
+
+        // Replace title with input
+        titleSpan.innerHTML = `
+            <input type="text" value="${currentTitle}"
+                   class="w-full px-2 py-1 border border-brand-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-200"
+                   id="edit-input-${taskId}">
+        `;
+        const input = document.getElementById(`edit-input-${taskId}`);
+        input.focus();
+        input.select();
+
+        function saveEdit() {
+            const newTitle = input.value.trim();
+            if (!newTitle || newTitle === currentTitle) {
+                titleSpan.textContent = currentTitle;
+                return;
+            }
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', `/customize/api/edit/${taskId}/`, true);
+            xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
+            xhr.setRequestHeader('X-CSRFToken', '{{ csrf_token }}');
+            xhr.onload = () => {
+                if (xhr.status === 200) {
+                    titleSpan.textContent = newTitle;
+                } else {
+                    titleSpan.textContent = currentTitle;
+                }
+            };
+            xhr.send(JSON.stringify({ title: newTitle }));
+        }
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); saveEdit(); }
+            if (e.key === 'Escape') { titleSpan.textContent = currentTitle; }
+        });
+        input.addEventListener('blur', saveEdit);
     }
 
     document.addEventListener('DOMContentLoaded', function() {
