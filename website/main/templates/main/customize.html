@@ -49,6 +49,7 @@
 <script>
 {% if user.is_authenticated %}
     const WEEK_DAYS = [
+        { value: 'all', name: 'Everyday' },
         { value: 0, name: 'Mon' },
         { value: 1, name: 'Tue' },
         { value: 2, name: 'Wed' },
@@ -66,7 +67,11 @@
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.dataset.day = day.value;
-            btn.className = 'px-4 py-2 text-sm font-medium rounded-xl border border-gray-200 text-gray-600 hover:border-brand-400 hover:text-brand-700 hover:bg-brand-50 transition';
+            if (day.value === 'all') {
+                btn.className = 'px-4 py-2 text-sm font-medium rounded-xl border border-green-300 text-green-700 bg-green-50 hover:border-green-500 hover:bg-green-100 transition';
+            } else {
+                btn.className = 'px-4 py-2 text-sm font-medium rounded-xl border border-gray-200 text-gray-600 hover:border-brand-400 hover:text-brand-700 hover:bg-brand-50 transition';
+            }
             btn.textContent = day.name;
             btn.addEventListener('click', () => selectDay(day.value, btn));
             group.appendChild(btn);
@@ -85,18 +90,47 @@
         document.getElementById('selected_day').value = dayId;
         document.getElementById('task-form-container').classList.remove('hidden');
 
-        // Fetch tasks
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', `/customize/${dayId}/`, true);
-        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-        xhr.setRequestHeader('X-CSRFToken', '{{ csrf_token }}');
-        xhr.onload = function() {
-            if (xhr.status === 200) {
-                const response = JSON.parse(xhr.responseText);
-                renderTasks(response.tasks);
+        if (dayId === 'all') {
+            // Fetch all 7 days and find common tasks
+            let allTasks = {};
+            let fetched = 0;
+            for (let i = 0; i < 7; i++) {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', `/customize/${i}/`, true);
+                xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+                xhr.setRequestHeader('X-CSRFToken', '{{ csrf_token }}');
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        const response = JSON.parse(xhr.responseText);
+                        response.tasks.forEach(t => {
+                            allTasks[t.title] = (allTasks[t.title] || 0) + 1;
+                        });
+                    }
+                    fetched++;
+                    if (fetched === 7) {
+                        // Show tasks that exist in all 7 days
+                        const common = Object.keys(allTasks)
+                            .filter(title => allTasks[title] === 7)
+                            .map(title => ({ title }));
+                        renderTasks(common);
+                    }
+                };
+                xhr.send();
             }
-        };
-        xhr.send();
+        } else {
+            // Fetch tasks for a single day
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', `/customize/${dayId}/`, true);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.setRequestHeader('X-CSRFToken', '{{ csrf_token }}');
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    const response = JSON.parse(xhr.responseText);
+                    renderTasks(response.tasks);
+                }
+            };
+            xhr.send();
+        }
     }
 
     function renderTasks(tasks) {

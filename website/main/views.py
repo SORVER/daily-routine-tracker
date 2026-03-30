@@ -109,8 +109,13 @@ def post_def_task(request):
             week_day = data.get('week_day')
 
             if title and week_day is not None:
-                def_day = get_object_or_404(DefaultDay, week_day=int(week_day), user=request.user)
-                DefaultTask.objects.create(title=title, defaultday=def_day)
+                if str(week_day) == 'all':
+                    for day_num in range(7):
+                        def_day = DefaultDay.objects.get(week_day=day_num, user=request.user)
+                        DefaultTask.objects.create(title=title, defaultday=def_day)
+                else:
+                    def_day = get_object_or_404(DefaultDay, week_day=int(week_day), user=request.user)
+                    DefaultTask.objects.create(title=title, defaultday=def_day)
                 return JsonResponse({'message': 'Task created successfully!'}, status=200)
             else:
                 return JsonResponse({'error': 'Invalid data'}, status=400)

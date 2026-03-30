@@ -6,6 +6,12 @@ Built with Django, Celery, Redis, and Tailwind CSS. Fully dockerized.
 
 ---
 
+## Screenshot
+
+![Routines Page](https://i.ibb.co/svdH1YTc/image.png)
+
+---
+
 ## Features
 
 - **Daily Tasks** -- Add, complete, and delete tasks for today
