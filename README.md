@@ -6,9 +6,7 @@ Built with Django, Celery, Redis, and Tailwind CSS. Fully dockerized.
 
 ---
 
-## Screenshot
-
-![Routines Page](https://i.ibb.co/svdH1YTc/image.png)
+![Routines Page](https://i.ibb.co/C58rp0Xr/Screenshot-from-2026-03-30-08-29-32.png)
 
 ---
 
