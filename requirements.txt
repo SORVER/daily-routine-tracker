@@ -1,0 +1,6 @@
+django>=5.1,<6.1
+crispy-bootstrap5>=2024.2
+django-crispy-forms>=2.1
+celery>=5.4
+redis>=5.0
+django-celery-beat>=2.6

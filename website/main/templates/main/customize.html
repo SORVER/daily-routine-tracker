@@ -1,0 +1,146 @@
+{% extends 'main/base.html' %}
+
+{% block title %}Routines{% endblock %}
+
+{% block content %}
+
+{% if user.is_authenticated %}
+
+<div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-800">Default Routines</h1>
+    <p class="text-sm text-gray-400 mt-1">Set tasks that auto-populate each day of the week</p>
+</div>
+
+<!-- Day Selector -->
+<div class="flex flex-wrap gap-2 mb-6" id="days-group"></div>
+
+<!-- Add Task Form (hidden initially) -->
+<div id="task-form-container" class="hidden mb-6">
+    <form method="post" id="day-form" class="flex gap-3">
+        {% csrf_token %}
+        <input type="hidden" name="week_day" id="selected_day">
+        <input type="text" name="title" placeholder="Add a default task..." required
+               class="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition bg-white">
+        <button type="submit"
+                class="px-5 py-2.5 bg-brand-600 text-white text-sm font-medium rounded-xl hover:bg-brand-700 transition shadow-sm">
+            Add
+        </button>
+    </form>
+</div>
+
+<!-- Task List -->
+<div id="task-list" class="space-y-2 mb-8"></div>
+
+<!-- Info -->
+<div class="bg-brand-50 text-brand-800 text-sm px-5 py-4 rounded-xl border border-brand-100">
+    <p class="font-medium mb-1">How it works</p>
+    <ul class="text-brand-600 space-y-1 text-xs">
+        <li>Tasks you add here auto-populate when you open the app on that day.</li>
+        <li>You'll get a morning email with your tasks and an evening summary.</li>
+    </ul>
+</div>
+
+{% else %}
+<div class="text-center py-20">
+    <p class="text-gray-400">You need to <a href="{% url 'login' %}" class="text-brand-600 font-medium underline">log in</a> to set up routines.</p>
+</div>
+{% endif %}
+
+<script>
+{% if user.is_authenticated %}
+    const WEEK_DAYS = [
+        { value: 0, name: 'Mon' },
+        { value: 1, name: 'Tue' },
+        { value: 2, name: 'Wed' },
+        { value: 3, name: 'Thu' },
+        { value: 4, name: 'Fri' },
+        { value: 5, name: 'Sat' },
+        { value: 6, name: 'Sun' }
+    ];
+
+    let selectedDay = null;
+
+    function generateDayButtons() {
+        const group = document.getElementById('days-group');
+        WEEK_DAYS.forEach(day => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.dataset.day = day.value;
+            btn.className = 'px-4 py-2 text-sm font-medium rounded-xl border border-gray-200 text-gray-600 hover:border-brand-400 hover:text-brand-700 hover:bg-brand-50 transition';
+            btn.textContent = day.name;
+            btn.addEventListener('click', () => selectDay(day.value, btn));
+            group.appendChild(btn);
+        });
+    }
+
+    function selectDay(dayId, btn) {
+        selectedDay = dayId;
+
+        // Update button styles
+        document.querySelectorAll('#days-group button').forEach(b => {
+            b.className = 'px-4 py-2 text-sm font-medium rounded-xl border border-gray-200 text-gray-600 hover:border-brand-400 hover:text-brand-700 hover:bg-brand-50 transition';
+        });
+        btn.className = 'px-4 py-2 text-sm font-medium rounded-xl border-2 border-brand-500 text-brand-700 bg-brand-50 transition';
+
+        document.getElementById('selected_day').value = dayId;
+        document.getElementById('task-form-container').classList.remove('hidden');
+
+        // Fetch tasks
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `/customize/${dayId}/`, true);
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xhr.setRequestHeader('X-CSRFToken', '{{ csrf_token }}');
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                const response = JSON.parse(xhr.responseText);
+                renderTasks(response.tasks);
+            }
+        };
+        xhr.send();
+    }
+
+    function renderTasks(tasks) {
+        const list = document.getElementById('task-list');
+        list.innerHTML = '';
+        if (tasks && tasks.length > 0) {
+            tasks.forEach(task => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center gap-3 bg-white px-4 py-3 rounded-xl border border-gray-100';
+                div.innerHTML = `
+                    <span class="w-2 h-2 rounded-full bg-brand-400"></span>
+                    <span class="text-sm text-gray-700">${task.title}</span>
+                `;
+                list.appendChild(div);
+            });
+        } else {
+            list.innerHTML = '<p class="text-sm text-gray-400 py-4 text-center">No default tasks for this day yet.</p>';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        generateDayButtons();
+
+        document.getElementById('day-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const title = this.querySelector('input[name="title"]').value.trim();
+            if (!title || selectedDay === null) return;
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/customize/api/', true);
+            xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
+            xhr.setRequestHeader('X-CSRFToken', '{{ csrf_token }}');
+            xhr.onload = () => {
+                if (xhr.status === 200) {
+                    // Re-fetch tasks to stay in sync
+                    const btn = document.querySelector(`#days-group button[data-day="${selectedDay}"]`);
+                    selectDay(selectedDay, btn);
+                    e.target.reset();
+                }
+            };
+            xhr.send(JSON.stringify({ title: title, week_day: selectedDay }));
+        });
+    });
+{% endif %}
+</script>
+
+{% endblock %}

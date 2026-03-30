@@ -1,0 +1,111 @@
+{% extends 'main/base.html' %}
+
+{% block title %}Calendar{% endblock %}
+
+{% block content %}
+
+<div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-800">Calendar</h1>
+    <p class="text-sm text-gray-400 mt-1">View your past tasks by date</p>
+</div>
+
+<div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+
+    <!-- Month Navigation -->
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <button onclick="previousMonth()" class="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 transition text-gray-500">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+        </button>
+        <h2 id="currentMonthYear" class="text-lg font-semibold text-gray-800"></h2>
+        <button onclick="nextMonth()" class="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 transition text-gray-500">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Weekday Headers -->
+    <div class="grid grid-cols-7 bg-gray-50 border-b border-gray-100">
+        <div class="py-2 text-center text-xs font-semibold text-gray-400 uppercase">Sun</div>
+        <div class="py-2 text-center text-xs font-semibold text-gray-400 uppercase">Mon</div>
+        <div class="py-2 text-center text-xs font-semibold text-gray-400 uppercase">Tue</div>
+        <div class="py-2 text-center text-xs font-semibold text-gray-400 uppercase">Wed</div>
+        <div class="py-2 text-center text-xs font-semibold text-gray-400 uppercase">Thu</div>
+        <div class="py-2 text-center text-xs font-semibold text-gray-400 uppercase">Fri</div>
+        <div class="py-2 text-center text-xs font-semibold text-gray-400 uppercase">Sat</div>
+    </div>
+
+    <!-- Days Grid -->
+    <div class="grid grid-cols-7" id="calendarDays"></div>
+</div>
+
+{% if not user.is_authenticated %}
+<div class="mt-4 bg-amber-50 text-amber-700 text-sm px-4 py-3 rounded-xl border border-amber-100">
+    You need to <a href="{% url 'login' %}" class="font-medium underline">log in</a> to view task history.
+</div>
+{% endif %}
+
+<script>
+    let today = new Date();
+    let currentMonth = today.getMonth();
+    let currentYear = today.getFullYear();
+
+    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+    function renderCalendar(month, year) {
+        const firstDay = new Date(year, month).getDay();
+        const daysInMonth = 32 - new Date(year, month, 32).getDate();
+
+        document.getElementById("currentMonthYear").innerText = `${months[month]} ${year}`;
+        const container = document.getElementById("calendarDays");
+        container.innerHTML = "";
+
+        // Empty cells before first day
+        for (let i = 0; i < firstDay; i++) {
+            let cell = document.createElement("div");
+            cell.className = "py-3 text-center text-sm text-gray-200 border-t border-gray-50";
+            container.appendChild(cell);
+        }
+
+        {% if user.is_authenticated %}
+            for (let day = 1; day <= daysInMonth; day++) {
+                let cell = document.createElement("div");
+                let isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+
+                cell.className = "py-3 text-center text-sm border-t border-gray-50 transition";
+
+                if (isToday) {
+                    cell.innerHTML = `<a href="/calendar/${year}/${month + 1}/${day}/" class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-brand-600 text-white font-semibold hover:bg-brand-700 transition">${day}</a>`;
+                } else {
+                    cell.innerHTML = `<a href="/calendar/${year}/${month + 1}/${day}/" class="inline-flex items-center justify-center w-8 h-8 rounded-full text-gray-600 hover:bg-brand-50 hover:text-brand-700 transition">${day}</a>`;
+                }
+                container.appendChild(cell);
+            }
+        {% else %}
+            for (let day = 1; day <= daysInMonth; day++) {
+                let cell = document.createElement("div");
+                cell.className = "py-3 text-center text-sm text-gray-300 border-t border-gray-50";
+                cell.innerHTML = `${day}`;
+                container.appendChild(cell);
+            }
+        {% endif %}
+    }
+
+    function previousMonth() {
+        currentYear = (currentMonth === 0) ? currentYear - 1 : currentYear;
+        currentMonth = (currentMonth === 0) ? 11 : currentMonth - 1;
+        renderCalendar(currentMonth, currentYear);
+    }
+
+    function nextMonth() {
+        currentYear = (currentMonth === 11) ? currentYear + 1 : currentYear;
+        currentMonth = (currentMonth === 11) ? 0 : currentMonth + 1;
+        renderCalendar(currentMonth, currentYear);
+    }
+
+    renderCalendar(currentMonth, currentYear);
+</script>
+
+{% endblock %}

@@ -1,0 +1,99 @@
+{% extends "main/base.html" %}
+
+{% block title %}Today's Tasks{% endblock %}
+
+{% block content %}
+
+{% if user.is_authenticated %}
+    <!-- Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-800">Today's Tasks</h1>
+        <p class="text-sm text-gray-400 mt-1">{{ today|date:"l, F j, Y"|default:"Today" }}</p>
+    </div>
+
+    <!-- Add Task Form -->
+    <form method="post" action="/" class="mb-8">
+        {% csrf_token %}
+        <div class="flex gap-3">
+            <input type="text" name="title" placeholder="What do you need to do?" required
+                   class="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition bg-white">
+            <button type="submit"
+                    class="px-5 py-2.5 bg-brand-600 text-white text-sm font-medium rounded-xl hover:bg-brand-700 transition shadow-sm">
+                Add
+            </button>
+        </div>
+    </form>
+
+    <!-- Task List -->
+    {% if tasks %}
+        <div class="space-y-2">
+            {% for task in tasks %}
+                <div class="flex items-center gap-3 bg-white px-4 py-3 rounded-xl border border-gray-100 hover:border-gray-200 transition group {% if task.completed %}opacity-60{% endif %}">
+                    <!-- Checkbox -->
+                    <form method="post" action="{% url 'update_task' task.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="flex items-center justify-center w-5 h-5 rounded-full border-2 transition
+                            {% if task.completed %}
+                                border-green-400 bg-green-400
+                            {% else %}
+                                border-gray-300 hover:border-brand-400
+                            {% endif %}">
+                            {% if task.completed %}
+                                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            {% endif %}
+                        </button>
+                    </form>
+
+                    <!-- Title -->
+                    <span class="flex-1 text-sm {% if task.completed %}line-through text-gray-400{% else %}text-gray-700{% endif %}">
+                        {{ task.title }}
+                    </span>
+
+                    <!-- Status Badge -->
+                    {% if task.completed %}
+                        <span class="text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">Done</span>
+                    {% else %}
+                        <span class="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Pending</span>
+                    {% endif %}
+
+                    <!-- Delete -->
+                    <form method="post" action="{% url 'delete_task' task.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="text-gray-300 hover:text-red-500 transition opacity-0 group-hover:opacity-100">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Summary -->
+        {% with completed_count=tasks|length %}
+        <div class="mt-6 text-center text-xs text-gray-400">
+            {{ tasks|length }} task{{ tasks|length|pluralize }}
+        </div>
+        {% endwith %}
+    {% else %}
+        <div class="text-center py-16">
+            <div class="text-4xl mb-3">&#9997;</div>
+            <p class="text-gray-400 text-sm">No tasks yet. Add one above to get started.</p>
+        </div>
+    {% endif %}
+
+{% else %}
+    <!-- Unauthenticated -->
+    <div class="text-center py-20">
+        <h1 class="text-3xl font-bold text-gray-800 mb-3">Daily Routine Tracker</h1>
+        <p class="text-gray-500 mb-6">Track your daily tasks, build routines, and stay on top of your day.</p>
+        <div class="flex gap-3 justify-center">
+            <a href="{% url 'login' %}" class="px-6 py-2.5 bg-brand-600 text-white text-sm font-medium rounded-xl hover:bg-brand-700 transition">Login</a>
+            <a href="{% url 'sign_up' %}" class="px-6 py-2.5 bg-white text-brand-700 text-sm font-medium rounded-xl border border-brand-200 hover:bg-brand-50 transition">Sign Up</a>
+        </div>
+    </div>
+{% endif %}
+
+{% endblock %}
