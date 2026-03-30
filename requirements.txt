@@ -4,3 +4,6 @@ django-crispy-forms>=2.1
 celery>=5.4
 redis>=5.0
 django-celery-beat>=2.6
+dj-database-url>=2.1
+psycopg2-binary>=2.9
+gunicorn>=22.0
