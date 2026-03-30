@@ -91,32 +91,17 @@
         document.getElementById('task-form-container').classList.remove('hidden');
 
         if (dayId === 'all') {
-            // Fetch all 7 days and find common tasks
-            let allTasks = {};
-            let fetched = 0;
-            for (let i = 0; i < 7; i++) {
-                const xhr = new XMLHttpRequest();
-                xhr.open('POST', `/customize/${i}/`, true);
-                xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-                xhr.setRequestHeader('X-CSRFToken', '{{ csrf_token }}');
-                xhr.onload = function() {
-                    if (xhr.status === 200) {
-                        const response = JSON.parse(xhr.responseText);
-                        response.tasks.forEach(t => {
-                            allTasks[t.title] = (allTasks[t.title] || 0) + 1;
-                        });
-                    }
-                    fetched++;
-                    if (fetched === 7) {
-                        // Show tasks that exist in all 7 days
-                        const common = Object.keys(allTasks)
-                            .filter(title => allTasks[title] === 7)
-                            .map(title => ({ title }));
-                        renderTasks(common);
-                    }
-                };
-                xhr.send();
-            }
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/customize/api/everyday/', true);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.setRequestHeader('X-CSRFToken', '{{ csrf_token }}');
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    const response = JSON.parse(xhr.responseText);
+                    renderTasks(response.tasks);
+                }
+            };
+            xhr.send();
         } else {
             // Fetch tasks for a single day
             const xhr = new XMLHttpRequest();
@@ -142,16 +127,17 @@
             tasks.forEach(task => {
                 const div = document.createElement('div');
                 div.className = 'flex items-center gap-3 bg-white px-4 py-3 rounded-xl border border-gray-100 group';
+                const dotColor = isEveryday ? 'bg-green-400' : 'bg-brand-400';
                 div.innerHTML = `
-                    <span class="w-2 h-2 rounded-full bg-brand-400 shrink-0"></span>
+                    <span class="w-2 h-2 rounded-full ${dotColor} shrink-0"></span>
                     <span class="flex-1 text-sm text-gray-700 task-title">${task.title}</span>
-                    ${!isEveryday && task.id ? `
-                    <button onclick="editTask(${task.id}, this)" class="text-gray-300 hover:text-brand-600 transition opacity-0 group-hover:opacity-100" title="Edit">
+                    ${task.id ? `
+                    <button onclick="editTask(${task.id}, this, ${isEveryday})" class="text-gray-300 hover:text-brand-600 transition opacity-0 group-hover:opacity-100" title="Edit">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
                         </svg>
                     </button>
-                    <button onclick="deleteTask(${task.id})" class="text-gray-300 hover:text-red-500 transition opacity-0 group-hover:opacity-100" title="Delete">
+                    <button onclick="deleteTask(${task.id}, ${isEveryday})" class="text-gray-300 hover:text-red-500 transition opacity-0 group-hover:opacity-100" title="Delete">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
@@ -165,9 +151,12 @@
         }
     }
 
-    function deleteTask(taskId) {
+    function deleteTask(taskId, isEveryday) {
+        const url = isEveryday
+            ? `/customize/api/everyday/delete/${taskId}/`
+            : `/customize/api/delete/${taskId}/`;
         const xhr = new XMLHttpRequest();
-        xhr.open('POST', `/customize/api/delete/${taskId}/`, true);
+        xhr.open('POST', url, true);
         xhr.setRequestHeader('X-CSRFToken', '{{ csrf_token }}');
         xhr.onload = () => {
             if (xhr.status === 200) {
@@ -178,7 +167,7 @@
         xhr.send();
     }
 
-    function editTask(taskId, btnEl) {
+    function editTask(taskId, btnEl, isEveryday) {
         const row = btnEl.closest('.group');
         const titleSpan = row.querySelector('.task-title');
         const currentTitle = titleSpan.textContent.trim();
@@ -200,7 +189,10 @@
                 return;
             }
             const xhr = new XMLHttpRequest();
-            xhr.open('POST', `/customize/api/edit/${taskId}/`, true);
+            const editUrl = isEveryday
+                ? `/customize/api/everyday/edit/${taskId}/`
+                : `/customize/api/edit/${taskId}/`;
+            xhr.open('POST', editUrl, true);
             xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
             xhr.setRequestHeader('X-CSRFToken', '{{ csrf_token }}');
             xhr.onload = () => {

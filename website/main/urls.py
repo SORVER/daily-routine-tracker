@@ -16,4 +16,7 @@ urlpatterns = [
     path('customize/api/', views.post_def_task, name='post_default_task'),
     path('customize/api/delete/<int:task_id>/', views.delete_def_task, name='delete_def_task'),
     path('customize/api/edit/<int:task_id>/', views.edit_def_task, name='edit_def_task'),
+    path('customize/api/everyday/', views.get_everyday_tasks, name='get_everyday_tasks'),
+    path('customize/api/everyday/delete/<int:task_id>/', views.delete_everyday_task, name='delete_everyday_task'),
+    path('customize/api/everyday/edit/<int:task_id>/', views.edit_everyday_task, name='edit_everyday_task'),
 ]

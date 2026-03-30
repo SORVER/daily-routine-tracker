@@ -4,6 +4,8 @@ A web app to build and track daily routines. Define recurring tasks for each day
 
 Built with Django, Celery, Redis, and Tailwind CSS. Fully dockerized.
 
+**Live Demo:** https://daily-routine-tracker-production.up.railway.app/
+
 ---
 
 ![Routines Page](https://i.ibb.co/C58rp0Xr/Screenshot-from-2026-03-30-08-29-32.png)
@@ -13,7 +15,8 @@ Built with Django, Celery, Redis, and Tailwind CSS. Fully dockerized.
 ## Features
 
 - **Daily Tasks** -- Add, complete, and delete tasks for today
-- **Recurring Routines** -- Set default tasks per weekday that auto-populate each day
+- **Recurring Routines** -- Set default tasks per weekday or for everyday at once, with inline edit and delete
+- **Everyday Tasks** -- Add a task once and it applies to all 7 days automatically
 - **Calendar** -- Browse past days and review what got done
 - **Email Notifications** -- Morning email with today's tasks, evening email with a completion summary (styled HTML emails with progress bar)
 - **User Settings** -- Update your name and email from the settings page

@@ -95,7 +95,7 @@ def week_custom(request):
 def post_default_day(request, day_id):
     if request.method == 'POST':
         def_day = get_object_or_404(DefaultDay, week_day=day_id, user=request.user)
-        tasks = list(def_day.tasks.values('id', 'title'))
+        tasks = list(def_day.tasks.filter(is_everyday=False).values('id', 'title'))
         return JsonResponse({'tasks': tasks})
     return JsonResponse({'error': 'Invalid request'}, status=400)
 
@@ -112,7 +112,7 @@ def post_def_task(request):
                 if str(week_day) == 'all':
                     for day_num in range(7):
                         def_day = DefaultDay.objects.get(week_day=day_num, user=request.user)
-                        DefaultTask.objects.create(title=title, defaultday=def_day)
+                        DefaultTask.objects.create(title=title, defaultday=def_day, is_everyday=True)
                 else:
                     def_day = get_object_or_404(DefaultDay, week_day=int(week_day), user=request.user)
                     DefaultTask.objects.create(title=title, defaultday=def_day)
@@ -159,6 +159,53 @@ def edit_def_task(request, task_id):
                 task.save()
                 return JsonResponse({'message': 'Task updated'}, status=200)
             return JsonResponse({'error': 'Title cannot be empty'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+
+@login_required
+def get_everyday_tasks(request):
+    if request.method == 'POST':
+        # Get everyday tasks from any one day (they're the same across all 7)
+        def_day = DefaultDay.objects.filter(user=request.user).first()
+        if def_day:
+            tasks = list(def_day.tasks.filter(is_everyday=True).values('id', 'title'))
+        else:
+            tasks = []
+        return JsonResponse({'tasks': tasks})
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+
+@login_required
+def delete_everyday_task(request, task_id):
+    """Delete an everyday task from all 7 days by matching title."""
+    if request.method == 'POST':
+        task = get_object_or_404(DefaultTask, id=task_id, defaultday__user=request.user, is_everyday=True)
+        title = task.title
+        # Delete from all 7 days
+        DefaultTask.objects.filter(
+            title=title, is_everyday=True, defaultday__user=request.user
+        ).delete()
+        return JsonResponse({'message': 'Task deleted from all days'}, status=200)
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+
+@login_required
+def edit_everyday_task(request, task_id):
+    """Edit an everyday task across all 7 days."""
+    if request.method == 'POST':
+        task = get_object_or_404(DefaultTask, id=task_id, defaultday__user=request.user, is_everyday=True)
+        try:
+            data = json.loads(request.body)
+            new_title = data.get('title', '').strip()
+            if not new_title:
+                return JsonResponse({'error': 'Title cannot be empty'}, status=400)
+            old_title = task.title
+            DefaultTask.objects.filter(
+                title=old_title, is_everyday=True, defaultday__user=request.user
+            ).update(title=new_title)
+            return JsonResponse({'message': 'Task updated across all days'}, status=200)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
     return JsonResponse({'error': 'Invalid request'}, status=400)

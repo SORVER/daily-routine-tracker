@@ -56,6 +56,7 @@ class DefaultDay(models.Model):
 class DefaultTask(models.Model):
     title = models.CharField(max_length=200)
     defaultday = models.ForeignKey(DefaultDay, on_delete=models.CASCADE, related_name='tasks')
+    is_everyday = models.BooleanField(default=False)
 
     def __str__(self):
         return self.title
